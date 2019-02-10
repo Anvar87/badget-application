@@ -3,6 +3,19 @@ var badgetControler = (function() {
         this.id = id;
         this.description = description;
         this.value = value;
+        this.parcentage = -1;
+    };
+
+    Expense.prototype.calcPercentages = function(totalIncom) {
+        if(totalIncom > 0) {
+            this.parcentage = Math.round((this.value / totalIncom)* 100);
+        } else {
+            this.parcentage = -1;
+        }
+    };
+
+    Expense.prototype.getPercentages = function() {
+        return this.parcentage;
     };
 
     var Income = function(id, description, value) {
@@ -66,6 +79,19 @@ var badgetControler = (function() {
             }
 
         },
+
+        calculatePercentages: function() {
+            data.allItems.exp.forEach(function(cur){
+                cur.calcPercentages(data.totals.inc);
+            });
+        },
+
+        getPercentages: function() {
+            var allPerc = data.allItems.exp.map(function(cur) {
+                return cur.getPercentages();
+            });
+            return allPerc;
+        },
         
         deletItem: function(type, id) {
             var ids, index;
@@ -110,7 +136,8 @@ var UIControler = (function() {
         expensesLable: '.budget-expenses__value',
         badgetLable: '.budget-value',
         percentageLable: '.budget-expenses__percentage',
-        container: '.container'
+        container: '.container',
+        expPercLable: '.item-expenses__percentage'
 
     };
 
@@ -144,6 +171,11 @@ var UIControler = (function() {
             newHtml = newHtml.replace('%value%', obj.value);
             document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
         },
+
+        deletListElement: function(selectorID) {
+            var el = document.getElementById(selectorID);
+            el.parentNode.removeChild(el);
+        },
         
 
         clearFields: function() {
@@ -171,8 +203,28 @@ var UIControler = (function() {
             }
         },
 
+        displayPercentages: function(percentages) {
+           var fields = document.querySelectorAll(DOMStrings.expPercLable);
 
-        getDomStr: function(obj) {
+           var nodeListForEach = function(list, callback) {
+               for(var i = 0; i < list.length; i++) {
+                callback(list[i], i);
+               }
+
+           };
+
+           nodeListForEach(fields, function(current, index) {
+               if(percentages[index] > 0) {
+                    current.textContent = percentages[index] + '%';
+               } else {
+                    current.textContent = '---';
+               }
+                
+           });
+        },
+
+
+        getDomStr: function() {
             return DOMStrings;
         }
     }
@@ -199,6 +251,16 @@ var controler = (function(badgetCtrl, UICtrl) {
         var badget = badgetCtrl.getBadget();
         UICtrl.displayBadget(badget);
     };
+
+    var updatePercentages = function() {
+        // 1. calculate percentages
+        badgetCtrl.calculatePercentages();
+        // 2. read percentage from badget controler
+        var percentage = badgetCtrl.getPercentages();
+
+        // 3. Update UI with the new percentages
+        UICtrl.displayPercentages(percentage);
+    };
     
     var ctrlAddItem = function() {
         var input, newItem;
@@ -210,6 +272,7 @@ var controler = (function(badgetCtrl, UICtrl) {
             updateBadget();
         };
         
+        updatePercentages();
     };
 
     var ctrlDeleteItem = function(event) {
@@ -223,6 +286,11 @@ var controler = (function(badgetCtrl, UICtrl) {
             ID = parseInt(splitID[1]);
             badgetCtrl.deletItem(type, ID);
         }
+        UICtrl.deletListElement(itemID);
+        updateBadget();
+
+        updatePercentages();
+
 
     }
 
