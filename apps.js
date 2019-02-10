@@ -1,37 +1,38 @@
 var badgetControler = (function() {
+    var Expense = function(id, description, value) {
+        this.id = id;
+        this.description = description;
+        this.value = value;
+    };
+
     var Income = function(id, description, value) {
         this.id = id;
         this.description = description;
         this.value = value;
-    }
-    var Expenses = function(id, description, value) {
-        this.id = id;
-        this.description = description;
-        this.value = value;
-    }
+    };
 
     var calculateTotal = function(type) {
         var sum = 0;
-        data.allItems[type].forEach(function(curr) {
-            sum += curr.value;
-        })
+        data.allItems[type].forEach(function(cur) {
+            sum += cur.value;
+        });
 
         data.totals[type] = sum;
-
-    }
+    };
 
     var data = {
-        allItems: {
-            inc: [],
-            exp: []
+        allItems : {
+            exp: [],
+            inc: []
         },
         totals: {
-            inc: 0,
-            exp: 0
+            exp: 0,
+            inc: 0
         },
         badget: 0,
         percentage: -1
-    }
+    };
+
 
     return {
         addItem: function(type, des, val) {
@@ -41,157 +42,202 @@ var badgetControler = (function() {
             } else {
                 ID = 0;
             }
-            
-
+    
             if(type === 'exp') {
-                newItem = new Expenses(ID, des, val);
+                newItem = new Expense(ID, des, val);
             } else if(type === 'inc') {
                 newItem = new Income(ID, des, val);
             }
 
             data.allItems[type].push(newItem);
             return newItem;
-
         },
 
         calculateBadget: function() {
             calculateTotal('inc');
             calculateTotal('exp');
 
-            
+            data.badget = data.totals.inc - data.totals.exp;
+
             if(data.totals.inc > 0) {
-                data.badget = data.totals.inc - data.totals.exp;
+                data.percentage = Math.round((data.totals.exp / data.totals.inc)* 100);
             } else {
                 data.percentage = -1;
             }
-            
+
+        },
+        
+        deletItem: function(type, id) {
+            var ids, index;
+            ids = data.allItems[type].map(function(current) {
+                return current.id;
+            });
+            index = ids.indexOf(id);
+
+            if(index !== -1) {
+                data.allItems[type].splice(index, 1);
+            }
         },
 
         getBadget: function() {
             return {
-                totalInc: data.totals.inc,
-                totalExp: data.totals.exp,
                 badget: data.badget,
-                percentage: data.percentage
+                percentage: data.percentage,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp
             }
         },
 
         testing: function() {
             console.log(data);
         }
-
     }
+
 
 })();
 
 
 var UIControler = (function() {
+
     var DOMStrings = {
+        inputBtn: '.add__btn',
         inputType: '.add-type',
         inputDescription: '.add-description',
         inputValue: '.add-value',
-        inputBtn: '.add__btn',
-        incomContainer: '.income-list',
-        expensesContainer: '.expenses-list'
-    }
+        incomeContainer: '.income-list',
+        expensesContainer: '.expenses-list',
+        incomeLable: '.budget-income__value',
+        expensesLable: '.budget-expenses__value',
+        badgetLable: '.budget-value',
+        percentageLable: '.budget-expenses__percentage',
+        container: '.container'
+
+    };
 
     return {
+
         getinput: function() {
             return {
                 type: document.querySelector(DOMStrings.inputType).value,
                 description: document.querySelector(DOMStrings.inputDescription).value,
-                value:parseFloat(document.querySelector(DOMStrings.inputValue).value)
-            }  
+                value: parseFloat(document.querySelector(DOMStrings.inputValue).value)
+            }
         },
 
         addListItem: function(obj, type) {
             var html, newHtml, element;
 
             if(type === 'inc') {
-                element = DOMStrings.incomContainer;
-                html = '<div class="item" id="income-%id%"><div class="item-description">%description%</div><div class="right">\
-                <div class="item__value-income">+%value%</div><button class="item__delete-income">\
-                <i class="ion-ios-close-outline"></i></button></div></div>'
-            } 
-            else if(type === 'exp') {
+                element = DOMStrings.incomeContainer;
+                html = '<div class="item" id="inc-%id%"><div class="item-description">%description%</div><div class="right">\
+                        <div class="item__value-income">+%value%</div><button class="item__delete-income">\
+                        <i class="ion-ios-close-outline"></i></button></div></div>';
+            } else if(type === 'exp') {
                 element = DOMStrings.expensesContainer;
-                html = '<div class="item" id="expenses-%id%"><div class="item-description">%description%</div><div class="right">\
-                <div class="item__value-expenses">-%value%</div><div class="item-expenses__percentage">45%</div>\
-                <button class="item__delete-expenses"><i class="ion-ios-close-outline"></i></button></div></div>'
+                html = '<div class="item" id="exp-%id%"><div class="item-description">%description%</div><div class="right">\
+                        <div class="item__value-expenses">-%value%</div><div class="item-expenses__percentage">45%</div>\
+                        <button class="item__delete-expenses"><i class="ion-ios-close-outline"></i></button></div></div>';
             }
 
             newHtml = html.replace('%id%', obj.id);
             newHtml = newHtml.replace('%description%', obj.description);
             newHtml = newHtml.replace('%value%', obj.value);
-
             document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
-
         },
+        
 
         clearFields: function() {
             var fields, fieldsArr;
+
             fields = document.querySelectorAll(DOMStrings.inputDescription + ', ' + DOMStrings.inputValue);
             fieldsArr = Array.prototype.slice.call(fields);
-
             fieldsArr.forEach(function(current, index, array) {
-                current.value = "";
-            })
+                current.value = '';
+            });
 
             fieldsArr[0].focus();
 
         },
 
-        getDomStr: function() {
+        displayBadget: function(obj) { 
+            document.querySelector(DOMStrings.badgetLable).textContent = obj.badget;
+            
+            document.querySelector(DOMStrings.incomeLable).textContent = obj.totalInc;
+            document.querySelector(DOMStrings.expensesLable).textContent = obj.totalExp;
+            if(obj.totalInc > 0) {
+                document.querySelector(DOMStrings.percentageLable).textContent = obj.percentage + '%';
+            } else {
+                document.querySelector(DOMStrings.percentageLable).textContent = '---';
+            }
+        },
+
+
+        getDomStr: function(obj) {
             return DOMStrings;
         }
     }
 
-
-
 })();
+
 
 
 var controler = (function(badgetCtrl, UICtrl) {
 
     var setupEventListener = function() {
-        document.addEventListener('keypress', function(event) {
-            if(event.keyCode === 13 || event.which === 13) {
+        var DOM = UICtrl.getDomStr();
+        document.querySelector(DOM.inputBtn).addEventListener('click', ctrlAddItem);
+        document.addEventListener('keypress', function(event){
+        if(event.keyCode === 13 || event.which === 13) {
                 ctrlAddItem();
             }
         });
-        var DOM = UICtrl.getDomStr();
-        document.querySelector(DOM.inputBtn).addEventListener('click', ctrlAddItem);
-    };
-
-    var updateBadget = function() {
-        badgetCtrl.calculateBadget()
-        var budget = badgetCtrl.getBadget();
-        console.log(budget);
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
     }
 
-
+    var updateBadget = function() {
+        badgetCtrl.calculateBadget();
+        var badget = badgetCtrl.getBadget();
+        UICtrl.displayBadget(badget);
+    };
+    
     var ctrlAddItem = function() {
         var input, newItem;
         input = UICtrl.getinput();
-        if(input.description !== "" &  !isNaN(input.value) & input.value > 0) {
+        if(input.description !== "" && !isNaN(input.value) && input.value > 0) {
             newItem = badgetCtrl.addItem(input.type, input.description, input.value);
-            UICtrl.addListItem(newItem, input.type);
+            UIControler.addListItem(newItem, input.type);
             UICtrl.clearFields();
             updateBadget();
-        }
-        
+        };
         
     };
 
+    var ctrlDeleteItem = function(event) {
+        var itemID, splitID, type, ID;
+
+        itemID = event.target.parentNode.parentNode.parentNode.id;
+
+        if(itemID) {
+            splitID = itemID.split('-');
+            type = splitID[0];
+            ID = parseInt(splitID[1]);
+            badgetCtrl.deletItem(type, ID);
+        }
+
+    }
 
     return {
         init: function() {
-            return setupEventListener();
+            UICtrl.displayBadget({
+                badget: 0,
+                totalExp: 0,
+                totalInc: 0,
+                percentage: -1
+            });
+            setupEventListener();
         }
     }
 
-
 })(badgetControler, UIControler);
-
 
 controler.init();
