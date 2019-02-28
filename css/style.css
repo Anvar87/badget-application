@@ -78,6 +78,10 @@ body {
     padding: 3px 0;
 }
 
+.red-focus:focus {
+    border: 1px solid #FF5049 !important; 
+}
+.red {color: #FF5049 !important}
 .budget-expenses {
     display: flex;
     padding: 12px;
